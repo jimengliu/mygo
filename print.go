@@ -20,7 +20,7 @@ func GetFileSystemBlockSize() (int64, error) {
 }
 
 // globals
-var blockSize int64
+var blockSize int64 = 4 * 1024
 
 func main() {
 	if len(os.Args) != 2 {
@@ -31,7 +31,6 @@ func main() {
 	blockSize, err = GetFileSystemBlockSize()
 	if err != nil {
 		log.Fatal("can't get FS block size", err)
-		return
 	}
 
 	fileName := os.Args[1]
@@ -39,30 +38,34 @@ func main() {
 	// open child and parent files
 	file, err := os.Open(fileName)
 	if err != nil {
-		log.Fatal("Failed to open fileName")
+		panic("Failed to open fileName, error:" + err.Error())
 	}
 	defer file.Close()
 
-	var dataholes []int64
-	dataholes, err = getDataSegOffsets(file)
-	fmt.Println(dataholes)
+	var dataSegments []int64
+	dataSegments, err = getDataSegOffsets(file)
+	if err == nil {
+        fmt.Println(dataSegments)
+    } else {
+        panic("failed to getDataSegOffsets(" + fileName + ") error:" + err.Error())
+    }
 }
 
 func getDataSegOffsets(file *os.File) ([]int64, error) {
 	var data, hole int64
-	var datahole []int64
+	var dataSegment []int64
 	var err error
 	for {
 		data, err = syscall.Seek(int(file.Fd()), hole, SEEK_DATA)
 		if err == nil {
 			hole, err = syscall.Seek(int(file.Fd()), data, SEEK_HOLE)
 			if err == nil {
-				datahole = append(datahole, data)
-				datahole = append(datahole, hole - data)
+				dataSegment = append(dataSegment, data)
+				dataSegment = append(dataSegment, hole - data)
 				continue
 			}
 		}
 		break
 	}
-	return datahole, nil
+	return dataSegment, nil
 }

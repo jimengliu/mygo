@@ -23,14 +23,12 @@ var blockSize int64
 
 func main() {
 	if len(os.Args) != 3 {
-		log.Fatal("need child and parent file names, child first and parent second")
-		return
+		panic("need child and parent file names, child first and parent second")
 	}
 	var err error
 	blockSize, err = GetFileSystemBlockSize()
 	if err != nil {
-		log.Fatal("can't get FS block size", err)
-		return
+		panic("can't get FS block size, error: " + err.Error())
 	}
 
 	childFileName := os.Args[1]
@@ -38,42 +36,43 @@ func main() {
 
 	childFInfo, infoErr := os.Stat(childFileName)
 	if infoErr != nil {
-		log.Fatal("os.Stat(childFileName) failed", infoErr)
-		return
+		panic("os.Stat(childFileName) failed, error: " + err.Error())
 	}
 	parentFInfo, infoErr := os.Stat(parentFileName)
 	if infoErr != nil {
-		log.Fatal("os.Stat(parentFileName) failed", infoErr)
-		return
+		panic("os.Stat(parentFileName) failed, error: " + err.Error())
 	}
 	
 	// ensure no directory
 	if childFInfo.IsDir() || parentFInfo.IsDir() {
-	    log.Fatal("at least one file is directory, not a normal file")
+	    panic("at least one file is directory, not a normal file")
 	}
 
 	// ensure file sizes are equal
 	if childFInfo.Size() != parentFInfo.Size() {
-	    log.Fatal("file sizes are not equal")
+	    panic("file sizes are not equal")
 	}
 
 	// open child and parent files
 	childFile, err := os.Open(childFileName)
 	if err != nil {
-		log.Fatal("Failed to open childFile")
+		panic("Failed to open childFile, error: " + err.Error())
 	}
 	defer childFile.Close()
 
 	parentFile, err := os.OpenFile(parentFileName, os.O_RDWR, 0)
 	if err != nil {
-		log.Fatal("Failed to open parentFile")
+		panic("Failed to open parentFile, error: " + err.Error())
 	}
 	defer parentFile.Close()
 
-	Coalesce(parentFile, childFile)
+	err = coalesce(parentFile, childFile)
+	if err != nil {
+		panic("Failed to open parentFile, error: " + err.Error())
+	}
 }
 
-func Coalesce(parentFile *os.File, childFile *os.File) error {
+func coalesce(parentFile *os.File, childFile *os.File) error {
 	var data, hole int64
 	var err error
 	for {

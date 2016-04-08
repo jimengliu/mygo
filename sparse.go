@@ -59,7 +59,7 @@ func main() {
 	blockSize, err := GetFileSystemBlockSize()
 	if err != nil {
 		log.Fatal("can't get FS block size", err)
-		return
+		blockSize = 4 * 1024
 	}
 
 	// make some parts dirty at block offset in child and parent:
@@ -71,11 +71,11 @@ func main() {
 	// create child and parent sparse files
 	err = createSparseFile(childFileName, childDirtyOffsets)
 	if err != nil {
-		log.Fatal("Failed to create child file")
+		panic("Failed to create child file, error: " + err.Error())
 	}
 
 	err = createSparseFile(parentFileName, parentDirtyOffsets)
 	if err != nil {
-		log.Fatal("Failed to create parent file")
+		panic("Failed to create parent file, error: " + err.Error())
 	}
 }
